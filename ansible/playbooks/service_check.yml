@@ -1,0 +1,16 @@
+---
+- name: Check status of a key service across the fleet
+  hosts: fleet
+  gather_facts: false
+  vars:
+    service_name: sshd
+  tasks:
+    - name: Check if {{ service_name }} is active
+      ansible.builtin.command: systemctl is-active {{ service_name }}
+      register: result
+      ignore_errors: true
+      changed_when: false
+
+    - name: Report status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} - {{ service_name }} status: {{ result.stdout | default('unknown') }}"

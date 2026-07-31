@@ -1,0 +1,4 @@
+[fleet:vars]
+ansible_password=test123
+ansible_password=test123
+

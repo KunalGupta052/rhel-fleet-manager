@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RHEL Fleet Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #131a22;
+    --border: #232d38;
+    --text: #d6dde5;
+    --muted: #6b7785;
+    --accent: #3fb950;
+    --accent-dim: #1e4a29;
+    --danger: #f0625a;
+    --danger-dim: #4a1e1e;
+    --amber: #d9a441;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+  .topbar {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .topbar h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.02em;
+  }
+  .topbar h1 span { color: var(--accent); }
+  .topbar .sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .fleet-strip {
+    display: flex;
+    gap: 24px;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .node-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+  }
+  main {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 32px;
+  }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .playbook-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  .playbook-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+    text-align: left;
+  }
+  .playbook-card:hover, .playbook-card:focus-visible {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .playbook-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .playbook-card .name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .playbook-card .hint {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .playbook-card .run-label {
+    display: inline-block;
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 10px;
+  }
+  tbody td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    vertical-align: top;
+  }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .status-success { background: var(--accent-dim); color: var(--accent); }
+  .status-failed { background: var(--danger-dim); color: var(--danger); }
+  .output-cell {
+    color: var(--muted);
+    white-space: pre-wrap;
+    max-width: 360px;
+  }
+  .empty-state {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 24px 0;
+  }
+  #toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) {
+    .playbook-card, #toast { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>rhel-fleet<span>-manager</span></h1>
+  <div class="sub">ansible automation &middot; live run log</div>
+</div>
+
+<div class="fleet-strip">
+  <div class="node-pill"><span class="dot"></span> node1</div>
+  <div class="node-pill"><span class="dot"></span> node2</div>
+  <div class="node-pill">inventory: ansible/inventory.ini</div>
+</div>
+
+<main>
+  <div class="section-label">Run a playbook</div>
+  <div class="playbook-grid">
+    {% for p in playbooks %}
+    <button class="playbook-card" data-playbook="{{ p.id }}" onclick="runPlaybook('{{ p.id }}')">
+      <span class="name">{{ p.id }}.yml</span>
+      <span class="hint">{{ p.label }}</span>
+      <span class="run-label">&#9654; run</span>
+    </button>
+    {% endfor %}
+  </div>
+
+  <div class="section-label">Recent runs</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Playbook</th>
+        <th>Status</th>
+        <th>Output</th>
+      </tr>
+    </thead>
+    <tbody id="log-body">
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        <td>{{ log.playbook }}</td>
+        <td><span class="status-badge status-{{ log.status }}">{{ log.status }}</span></td>
+        <td class="output-cell">{{ log.output }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="empty-state">No runs yet — trigger a playbook above to see it logged here.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</main>
+
+<div id="toast"></div>
+
+<script>
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function prependRow(entry) {
+  const tbody = document.getElementById('log-body');
+  const emptyRow = tbody.querySelector('.empty-state');
+  if (emptyRow) emptyRow.closest('tr').remove();
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${entry.timestamp}</td>
+    <td>${entry.playbook_id || ''}</td>
+    <td><span class="status-badge status-${entry.success ? 'success' : 'failed'}">${entry.success ? 'success' : 'failed'}</span></td>
+    <td class="output-cell">${entry.output}</td>
+  `;
+  tbody.prepend(tr);
+}
+
+async function runPlaybook(id) {
+  showToast(`Running ${id}.yml ...`);
+  try {
+    const res = await fetch(`/run/${id}`);
+    const data = await res.json();
+    data.playbook_id = id;
+    prependRow(data);
+    showToast(data.success ? `${id}.yml completed` : `${id}.yml failed`);
+  } catch (err) {
+    showToast('Request failed — check server logs');
+  }
+}
+</script>
+
+</body>
+</html>

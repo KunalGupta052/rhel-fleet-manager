@@ -1,0 +1,17 @@
+---
+- name: Ensure a standard operations user exists on every node
+  hosts: fleet
+  gather_facts: false
+  vars:
+    target_user: opsuser
+  tasks:
+    - name: Create user {{ target_user }}
+      ansible.builtin.user:
+        name: "{{ target_user }}"
+        shell: /bin/bash
+        state: present
+      register: user_result
+
+    - name: Report result
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} - user '{{ target_user }}' present: {{ user_result.changed is defined }}"

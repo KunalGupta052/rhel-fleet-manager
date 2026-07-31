@@ -1,0 +1,16 @@
+---
+- name: Ensure a required package is installed across the fleet
+  hosts: fleet
+  gather_facts: false
+  vars:
+    target_package: htop
+  tasks:
+    - name: Install {{ target_package }}
+      ansible.builtin.package:
+        name: "{{ target_package }}"
+        state: present
+      register: pkg_result
+
+    - name: Report result
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} - package '{{ target_package }}' status: {{ pkg_result.changed is defined }}"

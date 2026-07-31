@@ -1,0 +1,25 @@
+---
+- name: Rotate application logs older than a threshold
+  hosts: fleet
+  gather_facts: false
+  vars:
+    log_dir: /var/log
+    days_old: 7
+  tasks:
+    - name: Find old log files
+      ansible.builtin.find:
+        paths: "{{ log_dir }}"
+        age: "{{ days_old }}d"
+        patterns: "*.log"
+        recurse: false
+      register: old_logs
+
+    - name: Remove old log files
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_logs.files }}"
+
+    - name: Report result
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} - removed {{ old_logs.files | length }} log file(s) older than {{ days_old }} days"
