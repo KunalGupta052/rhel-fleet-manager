@@ -2,6 +2,9 @@ import os
 from flask import Flask, jsonify, render_template
 from models import db, RunLog
 from runner import run_playbook
+from flask import Flask, jsonify, render_template, Response
+from models import db, RunLog
+from runner import execute_playbook, stream_playbook_logs, AVAILABLE_PLAYBOOKS
 
 AVAILABLE_PLAYBOOKS = [
     {"id": "service_check", "label": "Check sshd Service"},
@@ -47,6 +50,20 @@ def create_app(test_config: dict | None = None) -> Flask:
         db.session.add(entry)
         db.session.commit()
         return jsonify({**result, "id": entry.id, "timestamp": entry.timestamp.strftime("%Y-%m-%d %H:%M:%S")})
+    @app.route("/stream/<playbook_name>")
+    def stream_run(playbook_name):
+        valid_ids = [p["id"] for p in AVAILABLE_PLAYBOOKS]
+        if playbook_name not in valid_ids:
+            return jsonify({"error": "Invalid playbook"}), 400
+        
+        return Response(
+            stream_playbook_logs(playbook_name),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no"
+            }
+        )
 
     @app.route("/logs")
     def logs_json():
